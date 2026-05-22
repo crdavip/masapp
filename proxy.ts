@@ -8,6 +8,7 @@ export async function proxy(req: NextRequest) {
   // Allow auth routes, login page and common static assets
   if (
     pathname.startsWith('/api/auth') ||
+    pathname === '/api/seed' ||
     pathname.startsWith('/_next') ||
     pathname.startsWith('/static') ||
     pathname === '/login' ||
