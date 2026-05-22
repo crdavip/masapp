@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import prisma from '../../../lib/db'
-import { Prisma } from '@prisma/client'
+import { PrismaClientKnownRequestError } from '@prisma/client'
 
 export async function GET() {
   try {
@@ -64,7 +64,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json(result, { status: 201 })
   } catch (err: unknown) {
-    if (err instanceof Prisma.PrismaClientKnownRequestError) {
+    if (err instanceof PrismaClientKnownRequestError) {
       return NextResponse.json({ error: 'Error de base de datos' }, { status: 500 })
     }
     const msg = err instanceof Error ? err.message : String(err)
