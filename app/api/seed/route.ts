@@ -2,7 +2,13 @@ import { NextResponse } from 'next/server'
 import prisma from '@/lib/db'
 import bcrypt from 'bcrypt'
 
-export async function GET() {
+export async function GET(request: Request) {
+  const { searchParams } = new URL(request.url)
+  const secret = searchParams.get('secret')
+  if (secret !== process.env.SEED_SECRET) {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  }
+
   try {
     const password = process.env.ADMIN_PASSWORD || 'changeme'
     const email = process.env.ADMIN_EMAIL || 'admin@example.com'
