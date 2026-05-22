@@ -1,0 +1,68 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  createdAt    DateTime @default(now())
+}
+
+model Cliente {
+  id        String   @id @default(uuid())
+  nombre    String
+  telefono  String?
+  email     String?
+  notas     String?
+  createdAt DateTime @default(now())
+  ventas    Venta[]
+}
+
+model Producto {
+  id            String     @id @default(uuid())
+  nombre        String
+  precioVenta   Decimal    @db.Decimal(10,2)
+  precioCompra  Decimal?   @db.Decimal(10,2)
+  cantidadStock Int
+  createdAt     DateTime   @default(now())
+  ventaItems    VentaItem[]
+}
+
+model Venta {
+  id             String      @id @default(uuid())
+  clienteId      String
+  cliente        Cliente     @relation(fields: [clienteId], references: [id])
+  total          Decimal     @db.Decimal(12,2)
+  saldoPendiente Decimal     @db.Decimal(12,2)
+  estado         String
+  fecha          DateTime    @default(now())
+  notas          String?
+  items          VentaItem[]
+  abonos         Abono[]
+}
+
+model VentaItem {
+  id            String   @id @default(uuid())
+  ventaId       String
+  venta         Venta    @relation(fields: [ventaId], references: [id])
+  productoId    String
+  producto      Producto @relation(fields: [productoId], references: [id])
+  cantidad      Int
+  precioUnitario Decimal @db.Decimal(12,2)
+  subtotal      Decimal  @db.Decimal(12,2)
+}
+
+model Abono {
+  id         String   @id @default(uuid())
+  ventaId    String
+  venta      Venta    @relation(fields: [ventaId], references: [id])
+  monto      Decimal  @db.Decimal(12,2)
+  metodoPago String?
+  fecha      DateTime @default(now())
+  notas      String?
+}
