@@ -94,16 +94,16 @@ export default function VentasPage() {
             href={`/ventas/${v.id}`}
             className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 block hover:shadow-md transition focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
-            <div className="flex items-center justify-between mb-1">
-              <div className="font-medium text-gray-900 truncate">{v.cliente?.nombre || 'Cliente eliminado'}</div>
-              <span className="font-semibold text-gray-900 ml-2">{formatCOP(v.total)}</span>
-            </div>
-            <div className="flex items-center justify-between text-sm text-gray-600">
-              <div className="flex items-center gap-2">
-                <StatusBadge estado={v.estado} />
-                <span>{new Date(v.fecha).toLocaleDateString('es-CO')}</span>
+            <div className="flex items-start justify-between mb-1">
+              <div className="font-medium text-gray-900 truncate min-w-0">{v.cliente?.nombre || 'Cliente eliminado'}</div>
+              <div className="text-right ml-2 flex-shrink-0">
+                <div className="font-semibold text-gray-900">{formatCOP(v.total)}</div>
+                <div className="text-xs text-gray-600">Saldo: {formatCOP(v.saldoPendiente)}</div>
               </div>
-              <span className="text-gray-600">Saldo: {formatCOP(v.saldoPendiente)}</span>
+            </div>
+            <div className="flex items-center gap-2 text-sm text-gray-600">
+              <StatusBadge estado={v.estado} />
+              <span>{new Date(v.fecha).toLocaleDateString('es-CO')}</span>
             </div>
           </Link>
         ))}
