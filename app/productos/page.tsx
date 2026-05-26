@@ -1,8 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import PageLayout from '@/components/PageLayout'
 import { formatCOP } from '@/lib/format'
+import { sortData } from '@/lib/sort'
+import SortControls from '@/components/SortControls'
+import type { SortOption } from '@/components/SortControls'
 import { Plus, Pencil, Trash2, Save, X } from 'lucide-react'
 
 type Producto = {
@@ -28,6 +31,21 @@ export default function ProductosPage() {
   const [editPrecioVenta, setEditPrecioVenta] = useState('')
   const [editPrecioCompra, setEditPrecioCompra] = useState('')
   const [editStock, setEditStock] = useState(0)
+  const [sortField, setSortField] = useState('createdAt')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
+
+  const sortOptions: SortOption[] = [
+    { label: 'Nombre', value: 'nombre', type: 'string' },
+    { label: 'Precio venta', value: 'precioVenta', type: 'number' },
+    { label: 'Precio compra', value: 'precioCompra', type: 'number' },
+    { label: 'Stock', value: 'cantidadStock', type: 'number' },
+    { label: 'Fecha', value: 'createdAt', type: 'date' },
+  ]
+
+  const sortedProductos = useMemo(
+    () => sortData(productos, sortField, sortDir, sortOptions.find((o) => o.value === sortField)?.type ?? 'string'),
+    [productos, sortField, sortDir],
+  )
 
   useEffect(() => {
     fetch('/api/productos', { credentials: 'include' })
@@ -105,6 +123,14 @@ export default function ProductosPage() {
         </button>
       </div>
 
+      <SortControls
+        options={sortOptions}
+        field={sortField}
+        direction={sortDir}
+        onChange={(f, d) => { setSortField(f); setSortDir(d) }}
+        itemCount={productos.length}
+      />
+
       {showForm && (
         <form onSubmit={handleCreate} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5 mb-5 space-y-3">
           <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Nombre *" required className="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
@@ -123,7 +149,7 @@ export default function ProductosPage() {
       {error && <div className="text-red-600 text-sm mb-4">Error: {error}</div>}
 
       <div className="grid gap-3">
-        {productos.map((p) => (
+        {sortedProductos.map((p) => (
           <div key={p.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
             {editId === p.id ? (
               <form onSubmit={handleEdit} className="space-y-2">
