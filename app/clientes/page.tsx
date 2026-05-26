@@ -1,8 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
 import PageLayout from '@/components/PageLayout'
+import { sortData } from '@/lib/sort'
+import SortControls from '@/components/SortControls'
+import type { SortOption } from '@/components/SortControls'
 import { Plus, Search, Trash2 } from 'lucide-react'
 
 type Cliente = {
@@ -24,6 +27,8 @@ export default function ClientesPage() {
   const [email, setEmail] = useState('')
   const [notas, setNotas] = useState('')
   const [search, setSearch] = useState('')
+  const [sortField, setSortField] = useState('createdAt')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
 
   useEffect(() => {
     fetch('/api/clientes', { credentials: 'include' })
@@ -67,6 +72,16 @@ export default function ClientesPage() {
     c.email?.toLowerCase().includes(search.toLowerCase())
   )
 
+  const clientSortOptions: SortOption[] = [
+    { label: 'Nombre', value: 'nombre', type: 'string' },
+    { label: 'Fecha', value: 'createdAt', type: 'date' },
+  ]
+
+  const sortedClientes = useMemo(
+    () => sortData(filtered, sortField, sortDir, clientSortOptions.find((o) => o.value === sortField)?.type ?? 'string'),
+    [filtered, sortField, sortDir],
+  )
+
   return (
     <PageLayout>
       <div className="flex items-center justify-between mb-4">
@@ -89,6 +104,14 @@ export default function ClientesPage() {
         />
       </div>
 
+      <SortControls
+        options={clientSortOptions}
+        field={sortField}
+        direction={sortDir}
+        onChange={(f, d) => { setSortField(f); setSortDir(d) }}
+        itemCount={filtered.length}
+      />
+
       {showForm && (
         <form onSubmit={handleCreate} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5 mb-5 space-y-3">
           <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Nombre *" required className="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
@@ -105,7 +128,7 @@ export default function ClientesPage() {
       {error && <div className="text-red-600 text-sm mb-4">Error: {error}</div>}
 
       <div className="grid gap-3">
-        {filtered.map((c) => (
+        {sortedClientes.map((c) => (
           <div key={c.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex items-center justify-between">
             <Link href={`/clientes/${c.id}`} className="flex-1 min-w-0 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">
               <div className="font-medium text-gray-900 truncate">{c.nombre}</div>
