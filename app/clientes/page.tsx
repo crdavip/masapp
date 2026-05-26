@@ -127,7 +127,7 @@ export default function ClientesPage() {
       {loading && <div className="text-gray-500 text-sm">Cargando clientes...</div>}
       {error && <div className="text-red-600 text-sm mb-4">Error: {error}</div>}
 
-      <div className="grid gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
         {sortedClientes.map((c) => (
           <div key={c.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex items-center justify-between">
             <Link href={`/clientes/${c.id}`} className="flex-1 min-w-0 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded">

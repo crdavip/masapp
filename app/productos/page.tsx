@@ -148,7 +148,7 @@ export default function ProductosPage() {
       {loading && <div className="text-gray-500 text-sm">Cargando productos...</div>}
       {error && <div className="text-red-600 text-sm mb-4">Error: {error}</div>}
 
-      <div className="grid gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3">
         {sortedProductos.map((p) => (
           <div key={p.id} className="bg-white rounded-xl shadow-sm border border-gray-200 p-4">
             {editId === p.id ? (
