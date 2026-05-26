@@ -102,8 +102,8 @@ export default function NuevaVentaPage() {
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
           <label className="block text-sm font-medium text-gray-700 mb-3">Productos</label>
-          <div className="flex gap-2 mb-4">
-            <select id="producto-select" className="flex-1 p-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" defaultValue="">
+          <div className="flex flex-col sm:flex-row gap-2 mb-4">
+            <select id="producto-select" className="w-full sm:flex-1 p-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" defaultValue="">
               <option value="" disabled>Seleccionar producto...</option>
               {productos.filter((p) => p.cantidadStock > 0).map((p) => (
                 <option key={p.id} value={p.id}>{p.nombre} — {formatCOP(p.precioVenta)} (Stock: {p.cantidadStock})</option>
@@ -112,7 +112,7 @@ export default function NuevaVentaPage() {
             <button
               type="button"
               onClick={() => { const sel = (document.getElementById('producto-select') as HTMLSelectElement); addItem(sel.value); sel.value = '' }}
-              className="flex items-center gap-1.5 px-4 py-2.5 bg-gray-600 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition focus:outline-none focus:ring-2 focus:ring-gray-500"
+              className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gray-600 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition w-full sm:w-auto focus:outline-none focus:ring-2 focus:ring-gray-500"
             >
               <Plus size={16} />
               Agregar
