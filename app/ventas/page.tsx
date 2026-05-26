@@ -1,10 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import Link from 'next/link'
 import PageLayout from '@/components/PageLayout'
 import StatusBadge from '@/components/StatusBadge'
 import { formatCOP } from '@/lib/format'
+import { sortData } from '@/lib/sort'
+import SortControls from '@/components/SortControls'
+import type { SortOption } from '@/components/SortControls'
 import { Plus, Search } from 'lucide-react'
 
 type Venta = {
@@ -23,6 +26,8 @@ export default function VentasPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
+  const [sortField, setSortField] = useState('fecha')
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
 
   useEffect(() => {
     fetch('/api/ventas', { credentials: 'include' })
@@ -34,6 +39,19 @@ export default function VentasPage() {
 
   const filtered = ventas.filter((v) =>
     v.cliente?.nombre?.toLowerCase().includes(search.toLowerCase())
+  )
+
+  const ventasSortOptions: SortOption[] = [
+    { label: 'Fecha', value: 'fecha', type: 'date' },
+    { label: 'Cliente', value: 'cliente.nombre', type: 'string' },
+    { label: 'Total', value: 'total', type: 'number' },
+    { label: 'Saldo pendiente', value: 'saldoPendiente', type: 'number' },
+    { label: 'Estado', value: 'estado', type: 'string' },
+  ]
+
+  const sortedVentas = useMemo(
+    () => sortData(filtered, sortField, sortDir, ventasSortOptions.find((o) => o.value === sortField)?.type ?? 'string'),
+    [filtered, sortField, sortDir],
   )
 
   return (
@@ -58,11 +76,19 @@ export default function VentasPage() {
         />
       </div>
 
+      <SortControls
+        options={ventasSortOptions}
+        field={sortField}
+        direction={sortDir}
+        onChange={(f, d) => { setSortField(f); setSortDir(d) }}
+        itemCount={filtered.length}
+      />
+
       {loading && <div className="text-gray-500 text-sm">Cargando ventas...</div>}
       {error && <div className="text-red-600 text-sm mb-4">Error: {error}</div>}
 
       <div className="grid gap-3">
-        {filtered.map((v) => (
+        {sortedVentas.map((v) => (
           <Link
             key={v.id}
             href={`/ventas/${v.id}`}
