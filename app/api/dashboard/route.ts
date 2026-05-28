@@ -1,12 +1,25 @@
 import { NextResponse } from 'next/server'
 import prisma from '../../../lib/db'
 
+/** Colombia no usa DST — offset fijo UTC-5 → midnight Bogotá = 5:00 UTC */
+const BOGOTA_TZ = 'America/Bogota'
+
+function bogotaMidnight(field: 'day' | 'month'): Date {
+  const fmt = new Intl.DateTimeFormat('en-CA', {
+    timeZone: BOGOTA_TZ,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  })
+  const [y, m, d] = fmt.format(new Date()).split('-').map(Number)
+  if (field === 'month') return new Date(Date.UTC(y, m - 1, 1, 5, 0, 0, 0))
+  return new Date(Date.UTC(y, m - 1, d, 5, 0, 0, 0))
+}
+
 export async function GET() {
   try {
-    const now = new Date()
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-    const startOfToday = new Date()
-    startOfToday.setHours(0, 0, 0, 0)
+    const startOfMonth = bogotaMidnight('month')
+    const startOfToday = bogotaMidnight('day')
 
     const [
       clientesActivos,
