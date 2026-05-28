@@ -3,12 +3,13 @@
 import { useSession, signOut } from 'next-auth/react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LogOut, Users, Package, Receipt } from 'lucide-react'
+import { LogOut, Users, Package, Receipt, BarChart3 } from 'lucide-react'
 
 const links = [
   { href: '/clientes', label: 'Clientes', icon: Users },
   { href: '/productos', label: 'Productos', icon: Package },
   { href: '/ventas', label: 'Ventas', icon: Receipt },
+  { href: '/analisis', label: 'Análisis', icon: BarChart3 },
 ]
 
 export default function Header() {
