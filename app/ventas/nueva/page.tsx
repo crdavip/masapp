@@ -7,7 +7,7 @@ import Link from 'next/link'
 import PageLayout from '@/components/PageLayout'
 import { formatCOP } from '@/lib/format'
 import SearchableSelect from '@/components/SearchableSelect'
-import { ArrowLeft, Plus, X } from 'lucide-react'
+import { ArrowLeft, Plus, X, User, Package } from 'lucide-react'
 
 type Cliente = { id: string; nombre: string }
 type Producto = { id: string; nombre: string; precioVenta: string; cantidadStock: number }
@@ -100,8 +100,8 @@ export default function NuevaVentaPage() {
             options={clientes.map((c) => ({ value: c.id, label: c.nombre }))}
             value={clienteId}
             onChange={setClienteId}
-            placeholder="Seleccionar cliente..."
-            searchPlaceholder="Buscá por nombre..."
+            icon={User}
+            placeholder="Buscá cliente por nombre..."
           />
         </div>
 
@@ -119,8 +119,8 @@ export default function NuevaVentaPage() {
                 addItem(val)
                 setProductoValue('')
               }}
-              placeholder="Buscar producto..."
-              searchPlaceholder="Escribí nombre del producto..."
+              icon={Package}
+              placeholder="Buscá producto por nombre..."
             />
           </div>
 

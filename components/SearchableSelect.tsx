@@ -13,9 +13,9 @@ type SearchableSelectProps = {
   value: string
   onChange: (value: string) => void
   placeholder?: string
-  searchPlaceholder?: string
   emptyMessage?: string
   disabled?: boolean
+  icon?: React.ElementType<{ size?: number; className?: string }>
 }
 
 export default function SearchableSelect({
@@ -23,9 +23,9 @@ export default function SearchableSelect({
   value,
   onChange,
   placeholder = 'Seleccionar...',
-  searchPlaceholder = 'Buscar...',
   emptyMessage = 'Sin resultados',
   disabled = false,
+  icon: Icon = Search,
 }: SearchableSelectProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [search, setSearch] = useState('')
@@ -42,13 +42,12 @@ export default function SearchableSelect({
     return options.filter((o) => o.label.toLowerCase().includes(q))
   }, [options, search])
 
-  // Reset search and highlight when opening
+  // Input shows selected label when closed, search text when open
+  const inputValue = isOpen ? search : (selected ? selected.label : '')
+
+  // Reset search when closing
   useEffect(() => {
-    if (isOpen) {
-      setSearch('')
-      setHighlightedIndex(-1)
-      requestAnimationFrame(() => inputRef.current?.focus())
-    }
+    if (!isOpen) setSearch('')
   }, [isOpen])
 
   // Close on click outside
@@ -76,6 +75,16 @@ export default function SearchableSelect({
     setIsOpen(false)
   }
 
+  function handleInput(e: React.ChangeEvent<HTMLInputElement>) {
+    if (!isOpen) setIsOpen(true)
+    setSearch(e.target.value)
+    setHighlightedIndex(-1)
+  }
+
+  function handleFocus() {
+    if (!disabled) setIsOpen(true)
+  }
+
   function handleKeyDown(e: React.KeyboardEvent) {
     switch (e.key) {
       case 'ArrowDown':
@@ -99,75 +108,59 @@ export default function SearchableSelect({
     }
   }
 
-  function handleClear(e: React.MouseEvent) {
-    e.stopPropagation()
+  function handleClear() {
     onChange('')
-  }
-
-  function handleTriggerKeyDown(e: React.KeyboardEvent) {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault()
-      if (!disabled) setIsOpen(true)
-    }
+    setSearch('')
+    inputRef.current?.focus()
   }
 
   return (
     <div ref={containerRef} className="relative">
-      {/* Trigger */}
-      <div
-        role="combobox"
-        aria-expanded={isOpen}
-        aria-haspopup="listbox"
-        tabIndex={disabled ? -1 : 0}
-        onClick={() => !disabled && setIsOpen(!isOpen)}
-        onKeyDown={handleTriggerKeyDown}
-        className={`w-full flex items-center gap-2 p-2.5 border rounded-lg text-sm cursor-pointer transition
-          ${disabled ? 'bg-gray-100 cursor-not-allowed opacity-60' : 'bg-white hover:border-gray-400'}
-          ${isOpen ? 'ring-2 ring-blue-500 border-transparent' : 'border-gray-300'}
-          focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-        `}
-      >
-        <Search size={16} className="text-gray-400 flex-shrink-0" />
-        {selected ? (
-          <span className="flex-1 text-gray-900 truncate">{selected.label}</span>
-        ) : (
-          <span className="flex-1 text-gray-500">{placeholder}</span>
-        )}
-        {selected && (
-          <span
-            role="button"
-            tabIndex={-1}
+      <div className="relative">
+        <Icon
+          size={16}
+          className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none"
+        />
+        <input
+          ref={inputRef}
+          type="text"
+          value={inputValue}
+          onChange={handleInput}
+          onFocus={handleFocus}
+          onKeyDown={handleKeyDown}
+          placeholder={placeholder}
+          disabled={disabled}
+          role="combobox"
+          aria-expanded={isOpen}
+          aria-haspopup="listbox"
+          aria-autocomplete="list"
+          className={`w-full pl-7 pr-8 p-2.5 border rounded-lg text-sm transition
+            ${disabled ? 'bg-gray-100 cursor-not-allowed opacity-60' : 'bg-white'}
+            ${isOpen ? 'ring-2 ring-blue-500 border-transparent' : 'border-gray-300'}
+            focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
+          `}
+        />
+        {selected && !isOpen && (
+          <button
+            type="button"
             onClick={handleClear}
-            className="p-0.5 text-gray-400 hover:text-gray-600 rounded focus:outline-none"
+            className="absolute right-7 top-1/2 -translate-y-1/2 p-0.5 text-gray-400 hover:text-gray-600 rounded focus:outline-none"
             aria-label="Limpiar selección"
+            tabIndex={-1}
           >
             <X size={14} />
-          </span>
+          </button>
         )}
         <ChevronDown
           size={16}
-          className={`text-gray-400 transition-transform flex-shrink-0 ${isOpen ? 'rotate-180' : ''}`}
+          className={`absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none transition-transform ${
+            isOpen ? 'rotate-180' : ''
+          }`}
         />
       </div>
 
-      {/* Dropdown */}
       {isOpen && (
         <div className="absolute z-50 mt-1 w-full bg-white border border-gray-200 rounded-lg shadow-lg">
-          <div className="p-2 border-b border-gray-100">
-            <div className="relative">
-              <Search size={14} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-              <input
-                ref={inputRef}
-                type="text"
-                value={search}
-                onChange={(e) => { setSearch(e.target.value); setHighlightedIndex(-1) }}
-                onKeyDown={handleKeyDown}
-                placeholder={searchPlaceholder}
-                className="w-full pl-7 p-2 border border-gray-200 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              />
-            </div>
-          </div>
-
           <ul ref={listRef} className="max-h-60 overflow-y-auto py-1" role="listbox">
             {filtered.length === 0 ? (
               <li className="px-3 py-8 text-sm text-gray-500 text-center">{emptyMessage}</li>
