@@ -6,6 +6,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import PageLayout from '@/components/PageLayout'
 import { formatCOP } from '@/lib/format'
+import SearchableSelect from '@/components/SearchableSelect'
 import { ArrowLeft, Plus, X } from 'lucide-react'
 
 type Cliente = { id: string; nombre: string }
@@ -20,6 +21,7 @@ export default function NuevaVentaPage() {
   const [clienteId, setClienteId] = useState('')
   const [notas, setNotas] = useState('')
   const [items, setItems] = useState<LineItem[]>([])
+  const [productoValue, setProductoValue] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
 
@@ -94,29 +96,32 @@ export default function NuevaVentaPage() {
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
           <label className="block text-sm font-medium text-gray-700 mb-2">Cliente</label>
-          <select value={clienteId} onChange={(e) => setClienteId(e.target.value)} required className="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
-            <option value="">Seleccionar cliente...</option>
-            {clientes.map((c) => <option key={c.id} value={c.id}>{c.nombre}</option>)}
-          </select>
+          <SearchableSelect
+            options={clientes.map((c) => ({ value: c.id, label: c.nombre }))}
+            value={clienteId}
+            onChange={setClienteId}
+            placeholder="Seleccionar cliente..."
+            searchPlaceholder="Buscá por nombre..."
+          />
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
           <label className="block text-sm font-medium text-gray-700 mb-3">Productos</label>
-          <div className="flex flex-col sm:flex-row gap-2 mb-4">
-            <select id="producto-select" className="w-full sm:flex-1 p-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" defaultValue="">
-              <option value="" disabled>Seleccionar producto...</option>
-              {productos.filter((p) => p.cantidadStock > 0).map((p) => (
-                <option key={p.id} value={p.id}>{p.nombre} — {formatCOP(p.precioVenta)} (Stock: {p.cantidadStock})</option>
-              ))}
-            </select>
-            <button
-              type="button"
-              onClick={() => { const sel = (document.getElementById('producto-select') as HTMLSelectElement); addItem(sel.value); sel.value = '' }}
-              className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-gray-600 text-white rounded-lg text-sm font-medium hover:bg-gray-700 transition w-full sm:w-auto focus:outline-none focus:ring-2 focus:ring-gray-500"
-            >
-              <Plus size={16} />
-              Agregar
-            </button>
+          <div className="mb-4">
+            <SearchableSelect
+              options={productos.filter((p) => p.cantidadStock > 0).map((p) => ({
+                value: p.id,
+                label: `${p.nombre} — ${formatCOP(p.precioVenta)} (Stock: ${p.cantidadStock})`,
+              }))}
+              value={productoValue}
+              onChange={(val) => {
+                if (!val) return
+                addItem(val)
+                setProductoValue('')
+              }}
+              placeholder="Buscar producto..."
+              searchPlaceholder="Escribí nombre del producto..."
+            />
           </div>
 
           {items.length === 0 ? (
