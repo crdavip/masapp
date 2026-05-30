@@ -72,7 +72,8 @@ export default function NuevaVentaPage() {
       })
       if (!res.ok) { const d = await res.json(); throw new Error(d.error || String(res.status)) }
       const venta = await res.json()
-      router.push(`/ventas/${venta.id}`)
+      const qs = venta.appended ? '?anexado=1' : ''
+      router.push(`/ventas/${venta.id}${qs}`)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {

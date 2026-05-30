@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useState, useCallback } from 'react'
-import { useParams } from 'next/navigation'
+import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import PageLayout from '@/components/PageLayout'
 import StatusBadge from '@/components/StatusBadge'
@@ -36,9 +36,11 @@ type VentaDetalle = {
 
 export default function VentaDetallePage() {
   const params = useParams()
+  const searchParams = useSearchParams()
   const [venta, setVenta] = useState<VentaDetalle | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [anexadoBanner, setAnexadoBanner] = useState(searchParams.get('anexado') === '1')
   const [abonoMonto, setAbonoMonto] = useState('')
   const [abonoMetodo, setAbonoMetodo] = useState('efectivo')
   const [abonoNotas, setAbonoNotas] = useState('')
@@ -53,6 +55,12 @@ export default function VentaDetallePage() {
   }, [params.id])
 
   useEffect(() => { load() }, [load])
+
+  useEffect(() => {
+    if (!anexadoBanner) return
+    const timer = setTimeout(() => setAnexadoBanner(false), 5000)
+    return () => clearTimeout(timer)
+  }, [anexadoBanner])
 
   async function handleAbono(e: React.FormEvent) {
     e.preventDefault()
@@ -88,6 +96,12 @@ export default function VentaDetallePage() {
       </Link>
 
       {error && <div className="text-red-600 text-sm mb-4 bg-red-50 p-3 rounded-lg border border-red-200">{error}</div>}
+
+      {anexadoBanner && (
+        <div className="text-blue-700 text-sm mb-4 bg-blue-50 p-3 rounded-lg border border-blue-200">
+          Items agregados a venta existente del cliente
+        </div>
+      )}
 
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5 mb-4">
         <div className="flex items-center justify-between mb-3">
