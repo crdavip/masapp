@@ -1,4 +1,5 @@
 import prisma from '../lib/db'
+import { Prisma } from '@prisma/client'
 
 export interface MergeResult {
   clienteNombre: string
@@ -7,7 +8,9 @@ export interface MergeResult {
   abonosMoved: number
 }
 
-type VentaWithIncludes = Awaited<ReturnType<typeof prisma.venta.findMany>>[number]
+type VentaWithIncludes = Prisma.VentaGetPayload<{
+  include: { cliente: { select: { nombre: true } }; items: true; abonos: true }
+}>
 
 export async function mergeDuplicates(): Promise<MergeResult[]> {
   const ventas = await prisma.venta.findMany({
