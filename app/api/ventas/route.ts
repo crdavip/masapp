@@ -22,6 +22,12 @@ export async function POST(request: Request) {
     }
 
     const result = await prisma.$transaction(async (tx) => {
+      // Find existing active sale for this client (append mode)
+      const existingVenta = await tx.venta.findFirst({
+        where: { clienteId, estado: { in: ['pendiente', 'parcial'] } },
+        orderBy: { fecha: 'asc' },
+      })
+
       let total = 0
       const itemData: { productoId: string; cantidad: number; precioUnitario: string; subtotal: string }[] = []
 
@@ -44,36 +50,73 @@ export async function POST(request: Request) {
       }
 
       const totalStr = total.toFixed(2)
-      const venta = await tx.venta.create({
-        data: {
-          clienteId,
-          total: totalStr,
-          saldoPendiente: totalStr,
-          estado,
-          notas,
-        },
-      })
+      let ventaId: string
 
-      for (const item of itemData) {
-        await tx.ventaItem.create({
+      if (existingVenta) {
+        // Append items to existing active sale
+        ventaId = existingVenta.id
+
+        for (const item of itemData) {
+          await tx.ventaItem.create({
+            data: {
+              ventaId: existingVenta.id,
+              productoId: item.productoId,
+              cantidad: item.cantidad,
+              precioUnitario: item.precioUnitario,
+              subtotal: item.subtotal,
+            },
+          })
+          await tx.producto.update({
+            where: { id: item.productoId },
+            data: { cantidadStock: { decrement: item.cantidad } },
+          })
+        }
+
+        // Update total and saldoPendiente (estado stays unchanged — only abonos change estado)
+        await tx.venta.update({
+          where: { id: existingVenta.id },
           data: {
-            ventaId: venta.id,
-            productoId: item.productoId,
-            cantidad: item.cantidad,
-            precioUnitario: item.precioUnitario,
-            subtotal: item.subtotal,
+            total: { increment: total },
+            saldoPendiente: { increment: total },
           },
         })
-        await tx.producto.update({
-          where: { id: item.productoId },
-          data: { cantidadStock: { decrement: item.cantidad } },
+        ventaId = existingVenta.id
+      } else {
+        // Create new sale (original flow)
+        const venta = await tx.venta.create({
+          data: {
+            clienteId,
+            total: totalStr,
+            saldoPendiente: totalStr,
+            estado,
+            notas,
+          },
         })
+        ventaId = venta.id
+
+        for (const item of itemData) {
+          await tx.ventaItem.create({
+            data: {
+              ventaId: venta.id,
+              productoId: item.productoId,
+              cantidad: item.cantidad,
+              precioUnitario: item.precioUnitario,
+              subtotal: item.subtotal,
+            },
+          })
+          await tx.producto.update({
+            where: { id: item.productoId },
+            data: { cantidadStock: { decrement: item.cantidad } },
+          })
+        }
       }
 
-      return tx.venta.findUnique({
-        where: { id: venta.id },
+      const venta = await tx.venta.findUnique({
+        where: { id: ventaId },
         include: { cliente: { select: { id: true, nombre: true } }, items: true, abonos: true },
       })
+
+      return { ...venta, appended: !!existingVenta }
     })
 
     return NextResponse.json(result, { status: 201 })
