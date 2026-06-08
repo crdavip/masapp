@@ -6,7 +6,13 @@ import PageLayout from '@/components/PageLayout'
 import { sortData } from '@/lib/sort'
 import SortControls from '@/components/SortControls'
 import type { SortOption } from '@/components/SortControls'
+import { truncate } from '@/lib/format'
 import { Plus, Search, Trash2 } from 'lucide-react'
+
+const clientSortOptions: SortOption[] = [
+  { label: 'Nombre', value: 'nombre', type: 'string' },
+  { label: 'Fecha', value: 'createdAt', type: 'date' },
+]
 
 type Cliente = {
   id: string
@@ -14,6 +20,9 @@ type Cliente = {
   telefono?: string | null
   email?: string | null
   notas?: string | null
+  direccion?: string | null
+  latitud?: number | null
+  longitud?: number | null
   createdAt?: string
 }
 
@@ -26,6 +35,7 @@ export default function ClientesPage() {
   const [telefono, setTelefono] = useState('')
   const [email, setEmail] = useState('')
   const [notas, setNotas] = useState('')
+  const [direccion, setDireccion] = useState('')
   const [search, setSearch] = useState('')
   const [sortField, setSortField] = useState('createdAt')
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc')
@@ -44,12 +54,12 @@ export default function ClientesPage() {
     try {
       const res = await fetch('/api/clientes', {
         method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre, telefono: telefono || undefined, email: email || undefined, notas: notas || undefined }),
+        body: JSON.stringify({ nombre, telefono: telefono || undefined, email: email || undefined, notas: notas || undefined, direccion: direccion || undefined }),
       })
       if (!res.ok) throw new Error(String(res.status))
       const c = await res.json() as Cliente
       setClientes((prev) => [c, ...prev])
-      setNombre(''); setTelefono(''); setEmail(''); setNotas('')
+      setNombre(''); setTelefono(''); setEmail(''); setNotas(''); setDireccion('')
       setShowForm(false)
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : String(err))
@@ -71,11 +81,6 @@ export default function ClientesPage() {
     c.nombre.toLowerCase().includes(search.toLowerCase()) ||
     c.email?.toLowerCase().includes(search.toLowerCase())
   )
-
-  const clientSortOptions: SortOption[] = [
-    { label: 'Nombre', value: 'nombre', type: 'string' },
-    { label: 'Fecha', value: 'createdAt', type: 'date' },
-  ]
 
   const sortedClientes = useMemo(
     () => sortData(filtered, sortField, sortDir, clientSortOptions.find((o) => o.value === sortField)?.type ?? 'string'),
@@ -117,6 +122,7 @@ export default function ClientesPage() {
           <input value={nombre} onChange={(e) => setNombre(e.target.value)} placeholder="Nombre *" required className="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
           <input value={telefono} onChange={(e) => setTelefono(e.target.value)} placeholder="Teléfono" className="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
           <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="Email" className="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+          <input value={direccion} onChange={(e) => setDireccion(e.target.value)} placeholder="Dirección" className="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
           <textarea value={notas} onChange={(e) => setNotas(e.target.value)} placeholder="Notas" className="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
           <button className="w-full py-2.5 bg-emerald-700 text-white rounded-lg text-sm font-medium hover:bg-emerald-800 transition focus:outline-none focus:ring-2 focus:ring-emerald-500">
             Guardar cliente
@@ -135,6 +141,9 @@ export default function ClientesPage() {
               <div className="text-sm text-gray-600 truncate">
                 {[c.email, c.telefono].filter(Boolean).join(' · ') || 'Sin contacto'}
               </div>
+              {c.direccion && (
+                <div className="text-xs text-gray-400 truncate mt-0.5">{truncate(c.direccion, 50)}</div>
+              )}
             </Link>
             <button
               onClick={() => handleDelete(c.id)}

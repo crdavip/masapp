@@ -3,13 +3,17 @@
 import { useEffect, useState } from 'react'
 import { useParams } from 'next/navigation'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import PageLayout from '@/components/PageLayout'
 import StatusBadge from '@/components/StatusBadge'
 import { formatCOP } from '@/lib/format'
 import { Pencil, DollarSign, ArrowLeft, Save, X } from 'lucide-react'
 
+const MapaUbicacion = dynamic(() => import('@/components/MapaUbicacion'), { ssr: false })
+
 type Cliente = {
   id: string; nombre: string; telefono?: string | null; email?: string | null; notas?: string | null
+  direccion?: string | null; latitud?: number | null; longitud?: number | null
 }
 
 type Venta = {
@@ -29,6 +33,9 @@ export default function ClienteDetallePage() {
   const [editTelefono, setEditTelefono] = useState('')
   const [editEmail, setEditEmail] = useState('')
   const [editNotas, setEditNotas] = useState('')
+  const [editDireccion, setEditDireccion] = useState('')
+  const [editLatitud, setEditLatitud] = useState<number | null>(null)
+  const [editLongitud, setEditLongitud] = useState<number | null>(null)
   const [abonoVentaId, setAbonoVentaId] = useState<string | null>(null)
   const [abonoMonto, setAbonoMonto] = useState('')
   const [abonoMetodo, setAbonoMetodo] = useState('efectivo')
@@ -37,7 +44,12 @@ export default function ClienteDetallePage() {
   useEffect(() => {
     fetch(`/api/clientes/${params.id}`, { credentials: 'include' })
       .then((r) => { if (!r.ok) throw new Error(String(r.status)); return r.json() as Promise<{ cliente: Cliente; ventas: Venta[] }> })
-      .then((data) => { setCliente(data.cliente); setVentas(data.ventas); setEditNombre(data.cliente.nombre); setEditTelefono(data.cliente.telefono || ''); setEditEmail(data.cliente.email || ''); setEditNotas(data.cliente.notas || '') })
+      .then((data) => {
+        setCliente(data.cliente); setVentas(data.ventas)
+        setEditNombre(data.cliente.nombre); setEditTelefono(data.cliente.telefono || '')
+        setEditEmail(data.cliente.email || ''); setEditNotas(data.cliente.notas || '')
+        setEditDireccion(data.cliente.direccion || ''); setEditLatitud(data.cliente.latitud ?? null); setEditLongitud(data.cliente.longitud ?? null)
+      })
       .catch((e) => setError(e.message))
       .finally(() => setLoading(false))
   }, [params.id])
@@ -47,7 +59,7 @@ export default function ClienteDetallePage() {
     try {
       const res = await fetch(`/api/clientes/${params.id}`, {
         method: 'PATCH', credentials: 'include', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ nombre: editNombre, telefono: editTelefono || null, email: editEmail || null, notas: editNotas || null }),
+        body: JSON.stringify({ nombre: editNombre, telefono: editTelefono || null, email: editEmail || null, notas: editNotas || null, direccion: editDireccion || null, latitud: editLatitud ?? null, longitud: editLongitud ?? null }),
       })
       if (!res.ok) throw new Error(String(res.status))
       const updated = await res.json() as Cliente
@@ -106,6 +118,17 @@ export default function ClienteDetallePage() {
           <input value={editNombre} onChange={(e) => setEditNombre(e.target.value)} placeholder="Nombre" required className="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
           <input value={editTelefono} onChange={(e) => setEditTelefono(e.target.value)} placeholder="Teléfono" className="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
           <input value={editEmail} onChange={(e) => setEditEmail(e.target.value)} placeholder="Email" className="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+          <input value={editDireccion} onChange={(e) => setEditDireccion(e.target.value)} placeholder="Dirección" className="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+          <MapaUbicacion
+            latitud={editLatitud}
+            longitud={editLongitud}
+            direccion={editDireccion}
+            onLocationChange={(lat, lng, dir) => {
+              setEditLatitud(lat)
+              setEditLongitud(lng)
+              if (dir) setEditDireccion(dir)
+            }}
+          />
           <textarea value={editNotas} onChange={(e) => setEditNotas(e.target.value)} placeholder="Notas" className="w-full p-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
           <button className="flex items-center justify-center gap-1.5 w-full py-2.5 bg-emerald-700 text-white rounded-lg text-sm font-medium hover:bg-emerald-800 transition focus:outline-none focus:ring-2 focus:ring-emerald-500">
             <Save size={16} />
@@ -118,6 +141,18 @@ export default function ClienteDetallePage() {
           {cliente.telefono && <p><span className="text-gray-500">Teléfono:</span> {cliente.telefono}</p>}
           {cliente.notas && <p><span className="text-gray-500">Notas:</span> {cliente.notas}</p>}
           {!cliente.email && !cliente.telefono && !cliente.notas && <p className="text-gray-500">Sin información adicional</p>}
+          {cliente.direccion && <p><span className="text-gray-500">Dirección:</span> {cliente.direccion}</p>}
+        </div>
+      )}
+
+      {cliente.latitud != null && cliente.longitud != null && !editMode && (
+        <div className="mb-5">
+          <MapaUbicacion
+            latitud={cliente.latitud}
+            longitud={cliente.longitud}
+            direccion={cliente.direccion}
+            readonly
+          />
         </div>
       )}
 
