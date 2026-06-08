@@ -45,7 +45,8 @@ export async function GET() {
       atencion: notificaciones.filter((n) => n.tipo === 'atencion'),
       vencido: notificaciones.filter((n) => n.tipo === 'vencido'),
     })
-  } catch {
+  } catch (err) {
+    console.error('GET /api/notificaciones error:', err)
     return NextResponse.json(
       { error: 'Error al cargar notificaciones' },
       { status: 500 },
