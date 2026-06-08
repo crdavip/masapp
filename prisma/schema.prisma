@@ -19,6 +19,9 @@ model Cliente {
   telefono  String?
   email     String?
   notas     String?
+  direccion String?
+  latitud   Float?
+  longitud  Float?
   createdAt DateTime @default(now())
   ventas    Venta[]
 }
