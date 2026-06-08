@@ -1,9 +1,9 @@
 'use client'
 
-import { useSession, signOut } from 'next-auth/react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LogOut, Users, Package, Receipt, BarChart3 } from 'lucide-react'
+import { Bell, Users, Package, Receipt, BarChart3 } from 'lucide-react'
+import UserDropdown from './UserDropdown'
 
 const links = [
   { href: '/clientes', label: 'Clientes', icon: Users },
@@ -13,7 +13,6 @@ const links = [
 ]
 
 export default function Header() {
-  const { data: session } = useSession()
   const pathname = usePathname()
 
   return (
@@ -42,16 +41,14 @@ export default function Header() {
             })}
           </nav>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="hidden sm:inline text-sm text-gray-500">{session?.user?.email}</span>
+        <div className="flex items-center gap-1">
           <button
-            onClick={() => signOut()}
-            className="flex items-center gap-1.5 text-sm text-red-600 hover:text-red-800 font-medium transition focus:outline-none focus:ring-2 focus:ring-red-500 rounded-lg p-1.5"
-            title="Cerrar sesión"
+            className="p-1.5 rounded-lg hover:bg-gray-100 transition focus:outline-none focus:ring-2 focus:ring-blue-500"
+            aria-label="Notificaciones"
           >
-            <LogOut size={18} />
-            <span className="hidden sm:inline">Salir</span>
+            <Bell size={18} className="text-gray-500" />
           </button>
+          <UserDropdown />
         </div>
       </div>
     </header>
