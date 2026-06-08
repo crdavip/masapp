@@ -56,6 +56,7 @@ export async function POST(request: Request) {
         data: {
           saldoPendiente: nuevoSaldo.toFixed(2),
           estado: nuevoEstado,
+          ultimoMovimiento: new Date(),
         },
       })
 

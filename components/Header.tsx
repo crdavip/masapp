@@ -2,8 +2,9 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Bell, Users, Package, Receipt, BarChart3 } from 'lucide-react'
+import { Users, Package, Receipt, BarChart3 } from 'lucide-react'
 import UserDropdown from './UserDropdown'
+import NotificationsDropdown from './NotificationsDropdown'
 
 const links = [
   { href: '/clientes', label: 'Clientes', icon: Users },
@@ -42,12 +43,7 @@ export default function Header() {
           </nav>
         </div>
         <div className="flex items-center gap-1">
-          <button
-            className="p-1.5 rounded-lg hover:bg-gray-100 transition focus:outline-none focus:ring-2 focus:ring-blue-500"
-            aria-label="Notificaciones"
-          >
-            <Bell size={18} className="text-gray-500" />
-          </button>
+          <NotificationsDropdown />
           <UserDropdown />
         </div>
       </div>

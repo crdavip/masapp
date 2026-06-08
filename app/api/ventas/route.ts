@@ -78,6 +78,7 @@ export async function POST(request: Request) {
           data: {
             total: { increment: total },
             saldoPendiente: { increment: total },
+            ultimoMovimiento: new Date(),
           },
         })
         ventaId = existingVenta.id
@@ -90,6 +91,7 @@ export async function POST(request: Request) {
             saldoPendiente: totalStr,
             estado,
             notas,
+            ultimoMovimiento: new Date(),
           },
         })
         ventaId = venta.id

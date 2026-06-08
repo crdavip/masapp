@@ -34,16 +34,17 @@ model Producto {
 }
 
 model Venta {
-  id             String      @id @default(uuid())
-  clienteId      String
-  cliente        Cliente     @relation(fields: [clienteId], references: [id])
-  total          Decimal     @db.Decimal(12,2)
-  saldoPendiente Decimal     @db.Decimal(12,2)
-  estado         String
-  fecha          DateTime    @default(now())
-  notas          String?
-  items          VentaItem[]
-  abonos         Abono[]
+  id               String      @id @default(uuid())
+  clienteId        String
+  cliente          Cliente     @relation(fields: [clienteId], references: [id])
+  total            Decimal     @db.Decimal(12,2)
+  saldoPendiente   Decimal     @db.Decimal(12,2)
+  estado           String
+  fecha            DateTime    @default(now())
+  notas            String?
+  ultimoMovimiento DateTime?
+  items            VentaItem[]
+  abonos           Abono[]
 }
 
 model VentaItem {
