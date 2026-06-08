@@ -29,8 +29,30 @@ async function main() {
 
   const existingClientes = await prisma.cliente.count()
   if (existingClientes === 0) {
-    await prisma.cliente.create({
-      data: { nombre: 'Cliente Demo', telefono: '555-1234', email: 'cliente@demo.test' },
+    await prisma.cliente.createMany({
+      data: [
+        {
+          nombre: 'Cliente Demo',
+          telefono: '555-1234',
+          email: 'cliente@demo.test',
+          direccion: 'Cra 7 # 26-20, Bogotá',
+          latitud: 4.6097,
+          longitud: -74.0817,
+        },
+        {
+          nombre: 'Cliente Sin Mapa',
+          telefono: '555-5678',
+          email: 'vintage@demo.test',
+          notas: 'Cliente anterior a la actualización de mapa',
+        },
+        {
+          nombre: 'Panadería El Buen Pan',
+          telefono: '311-234-5678',
+          direccion: 'Cl 10 # 5-30, Cali',
+          latitud: 3.4516,
+          longitud: -76.5319,
+        },
+      ],
     })
   }
 
