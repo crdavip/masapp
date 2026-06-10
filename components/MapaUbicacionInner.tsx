@@ -214,6 +214,9 @@ export default function MapaUbicacionInner({
     )
   }, [onLocationChange])
 
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => { setMounted(true) }, [])
+
   const hasCoords = latitud != null && longitud != null
   const [markerPlaced, setMarkerPlaced] = useState(hasCoords)
 
@@ -269,12 +272,13 @@ export default function MapaUbicacionInner({
       )}
 
       <div className="h-48 sm:h-72 rounded-lg overflow-hidden border border-gray-200" data-testid="map-wrapper">
-        <MapContainer
-          center={center}
-          zoom={15}
-          className="h-full w-full"
-          scrollWheelZoom={false}
-        >
+        {mounted && (
+          <MapContainer
+            center={center}
+            zoom={15}
+            className="h-full w-full"
+            scrollWheelZoom={false}
+          >
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -294,7 +298,8 @@ export default function MapaUbicacionInner({
             />
           )}
         </MapContainer>
-      </div>
+      )}
+    </div>
 
       {direccion && readonly && (
         <p className="text-xs text-gray-500 truncate">{direccion}</p>
