@@ -5,8 +5,9 @@ import { useParams, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import PageLayout from '@/components/PageLayout'
 import StatusBadge from '@/components/StatusBadge'
+import SearchableSelect from '@/components/SearchableSelect'
 import { formatCOP } from '@/lib/format'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Edit, Plus, X } from 'lucide-react'
 
 type VentaDetalle = {
   id: string
@@ -34,6 +35,16 @@ type VentaDetalle = {
   }[]
 }
 
+type EditedItem = {
+  id: string
+  productoId: string
+  producto: { id: string; nombre: string }
+  cantidad: number
+  precioUnitario: number
+  subtotal: number
+  isNew?: boolean
+}
+
 export default function VentaDetallePage() {
   const params = useParams()
   const searchParams = useSearchParams()
@@ -45,6 +56,11 @@ export default function VentaDetallePage() {
   const [abonoMetodo, setAbonoMetodo] = useState('efectivo')
   const [abonoNotas, setAbonoNotas] = useState('')
   const [savingAbono, setSavingAbono] = useState(false)
+  const [editMode, setEditMode] = useState(false)
+  const [editedItems, setEditedItems] = useState<EditedItem[]>([])
+  const [savingItems, setSavingItems] = useState(false)
+  const [newItem, setNewItem] = useState({ productoId: '', cantidad: 1, precioUnitario: 0 })
+  const [productos, setProductos] = useState<{ id: string; nombre: string; precioVenta: string; cantidadStock: number }[]>([])
 
   const load = useCallback(() => {
     fetch(`/api/ventas/${params.id}`, { credentials: 'include' })
@@ -82,6 +98,109 @@ export default function VentaDetallePage() {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
       setSavingAbono(false)
+    }
+  }
+
+  function enterEditMode() {
+    if (!venta) return
+    setEditedItems(venta.items.map(i => ({
+      id: i.id,
+      productoId: i.productoId,
+      producto: i.producto,
+      cantidad: i.cantidad,
+      precioUnitario: Number(i.precioUnitario),
+      subtotal: Number(i.subtotal),
+    })))
+    setEditMode(true)
+    setError(null)
+    fetch('/api/productos', { credentials: 'include' })
+      .then(r => r.json())
+      .then(data => setProductos(data))
+      .catch(() => {})
+  }
+
+  function handleEditCancel() {
+    setEditedItems([])
+    setNewItem({ productoId: '', cantidad: 1, precioUnitario: 0 })
+    setEditMode(false)
+    setError(null)
+  }
+
+  function addNewItem() {
+    if (!newItem.productoId || newItem.cantidad < 1 || newItem.precioUnitario <= 0) return
+    const prod = productos.find(p => p.id === newItem.productoId)
+    setEditedItems(prev => [...prev, {
+      id: `new-${Date.now()}`,
+      productoId: newItem.productoId,
+      producto: { id: newItem.productoId, nombre: prod?.nombre || '' },
+      cantidad: newItem.cantidad,
+      precioUnitario: newItem.precioUnitario,
+      subtotal: newItem.cantidad * newItem.precioUnitario,
+      isNew: true,
+    }])
+    setNewItem({ productoId: '', cantidad: 1, precioUnitario: 0 })
+  }
+
+  function removeEditedItem(id: string) {
+    setEditedItems(prev => prev.filter(i => i.id !== id))
+  }
+
+  function updateEditedItemCantidad(id: string, cantidad: number) {
+    if (cantidad < 1) return
+    setEditedItems(prev => prev.map(i =>
+      i.id === id ? { ...i, cantidad, subtotal: cantidad * i.precioUnitario } : i
+    ))
+  }
+
+  function buildOperations() {
+    if (!venta) return []
+    const ops: { op: string; productoId?: string; cantidad?: number; precioUnitario?: number; ventaItemId?: string }[] = []
+    const originalIds = new Set(venta.items.map(i => i.id))
+
+    for (const item of editedItems) {
+      if (item.isNew) {
+        ops.push({ op: 'add', productoId: item.productoId, cantidad: item.cantidad, precioUnitario: item.precioUnitario })
+      } else if (originalIds.has(item.id)) {
+        const original = venta.items.find(i => i.id === item.id)
+        if (original && original.cantidad !== item.cantidad) {
+          ops.push({ op: 'update', ventaItemId: item.id, cantidad: item.cantidad })
+        }
+      }
+    }
+
+    const editedIds = new Set(editedItems.map(i => i.id))
+    for (const item of venta.items) {
+      if (!editedIds.has(item.id)) {
+        ops.push({ op: 'remove', ventaItemId: item.id })
+      }
+    }
+
+    return ops
+  }
+
+  async function handleSave() {
+    const operations = buildOperations()
+    if (operations.length === 0) return
+    setSavingItems(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/ventas/${venta!.id}/items`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ operations }),
+      })
+      if (!res.ok) {
+        const d = await res.json()
+        throw new Error(d.error || 'Error al guardar cambios')
+      }
+      load()
+      setEditMode(false)
+      setEditedItems([])
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setSavingItems(false)
     }
   }
 
@@ -133,18 +252,128 @@ export default function VentaDetallePage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
-          <h2 className="text-base sm:text-lg font-semibold text-gray-900 mb-3">Productos</h2>
-          <div className="space-y-2">
-            {venta.items.map((i) => (
-              <div key={i.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
-                <div className="min-w-0 flex-1">
-                  <div className="font-medium text-sm text-gray-900 truncate">{i.producto?.nombre || 'Producto eliminado'}</div>
-                  <div className="text-xs text-gray-600">{i.cantidad} x {formatCOP(i.precioUnitario)}</div>
-                </div>
-                <span className="font-medium text-sm text-gray-900 ml-2">{formatCOP(i.subtotal)}</span>
-              </div>
-            ))}
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-base sm:text-lg font-semibold text-gray-900">Productos</h2>
+            {venta.estado !== 'pagada' && !editMode && (
+              <button
+                onClick={enterEditMode}
+                className="inline-flex items-center gap-1 text-xs px-2.5 py-1.5 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <Edit size={14} />
+                Editar items
+              </button>
+            )}
           </div>
+
+          {editMode ? (
+            <>
+              <div className="space-y-2">
+                {editedItems.map((item) => (
+                  <div key={item.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                    <div className="min-w-0 flex-1">
+                      <div className="font-medium text-sm text-gray-900 truncate">{item.producto?.nombre || 'Producto eliminado'}</div>
+                      <div className="text-xs text-gray-600">{formatCOP(item.precioUnitario)} c/u</div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="number"
+                        value={item.cantidad}
+                        onChange={(e) => updateEditedItemCantidad(item.id, Number(e.target.value))}
+                        min="1"
+                        className="w-14 p-1.5 border border-gray-300 rounded text-center text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      />
+                      <span className="text-sm font-medium text-gray-900 w-20 text-right">{formatCOP(item.cantidad * item.precioUnitario)}</span>
+                      <button
+                        type="button"
+                        onClick={() => removeEditedItem(item.id)}
+                        className="p-1.5 text-gray-500 hover:text-red-600 transition focus:outline-none focus:ring-2 focus:ring-red-500 rounded"
+                        title="Eliminar item"
+                      >
+                        <X size={16} />
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <div className="border-t border-gray-200 pt-3 mt-3">
+                <h3 className="text-sm font-medium text-gray-700 mb-2">Agregar producto</h3>
+                <div className="space-y-2">
+                  <SearchableSelect
+                    options={productos.map(p => ({
+                      value: p.id,
+                      label: `${p.nombre} — ${formatCOP(p.precioVenta)} (Stock: ${p.cantidadStock})`,
+                    }))}
+                    value={newItem.productoId}
+                    onChange={(val) => {
+                      const prod = productos.find(p => p.id === val)
+                      setNewItem({
+                        productoId: val,
+                        cantidad: 1,
+                        precioUnitario: prod ? Number(prod.precioVenta) : 0,
+                      })
+                    }}
+                    placeholder="Buscá producto por nombre..."
+                  />
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      value={newItem.cantidad}
+                      onChange={(e) => setNewItem(prev => ({ ...prev, cantidad: Math.max(1, Number(e.target.value)) }))}
+                      min="1"
+                      placeholder="Cantidad"
+                      className="flex-1 p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                    <input
+                      type="number"
+                      value={newItem.precioUnitario || ''}
+                      onChange={(e) => setNewItem(prev => ({ ...prev, precioUnitario: Number(e.target.value) }))}
+                      min="1"
+                      placeholder="Precio"
+                      className="flex-1 p-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    />
+                  </div>
+                  <button
+                    onClick={addNewItem}
+                    disabled={!newItem.productoId || newItem.cantidad < 1 || newItem.precioUnitario <= 0}
+                    className="w-full py-2 bg-blue-700 text-white rounded-lg text-sm font-medium hover:bg-blue-800 transition focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Plus size={16} className="inline mr-1" />
+                    Agregar
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex gap-2 mt-3">
+                <button
+                  onClick={handleSave}
+                  disabled={savingItems || buildOperations().length === 0}
+                  className="flex-1 py-2.5 bg-emerald-700 text-white rounded-lg text-sm font-medium hover:bg-emerald-800 transition focus:outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {savingItems ? 'Guardando...' : 'Guardar cambios'}
+                </button>
+                <button
+                  onClick={handleEditCancel}
+                  disabled={savingItems}
+                  className="flex-1 py-2.5 bg-gray-200 text-gray-700 rounded-lg text-sm font-medium hover:bg-gray-300 transition focus:outline-none focus:ring-2 focus:ring-gray-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Cancelar
+                </button>
+              </div>
+            </>
+          ) : (
+            <div className="space-y-2">
+              {venta.items.map((i) => (
+                <div key={i.id} className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+                  <div className="min-w-0 flex-1">
+                    <div className="font-medium text-sm text-gray-900 truncate">{i.producto?.nombre || 'Producto eliminado'}</div>
+                    <div className="text-xs text-gray-600">{i.cantidad} x {formatCOP(i.precioUnitario)}</div>
+                  </div>
+                  <span className="font-medium text-sm text-gray-900 ml-2">{formatCOP(i.subtotal)}</span>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-4 sm:p-5">
