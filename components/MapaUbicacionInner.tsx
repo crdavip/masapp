@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { MapContainer, TileLayer, Marker, Popup, useMapEvents } from 'react-leaflet'
 import L from 'leaflet'
-import { Loader2 } from 'lucide-react'
+import { Loader2, MapPin } from 'lucide-react'
 
 // Leaflet CSS is required for map tiles and controls to render correctly.
 // This import is safe because MapaUbicacion is always loaded via dynamic(() => import(...), { ssr: false }).
@@ -135,6 +135,8 @@ export default function MapaUbicacionInner({
   const [searchQuery, setSearchQuery] = useState(direccion || '')
   const [geocoding, setGeocoding] = useState(false)
   const [geocodeError, setGeocodeError] = useState(false)
+  const [geolocating, setGeolocating] = useState(false)
+  const [geoError, setGeoError] = useState<string | null>(null)
   const [center, setCenter] = useState<[number, number]>(
     latitud && longitud ? [latitud, longitud] : COLOMBIA_CENTER,
   )
@@ -177,6 +179,41 @@ export default function MapaUbicacionInner({
     [onLocationChange],
   )
 
+  const handleGeoLocate = useCallback(() => {
+    if (!navigator.geolocation) {
+      setGeoError('Geolocalización no disponible en este navegador')
+      return
+    }
+    setGeolocating(true)
+    setGeoError(null)
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        const { latitude: lat, longitude: lng } = pos.coords
+        setCenter([lat, lng])
+        setMarkerPlaced(true)
+        reverseGeocode(lat, lng, onLocationChange)
+        setGeolocating(false)
+      },
+      (err) => {
+        setGeolocating(false)
+        switch (err.code) {
+          case err.PERMISSION_DENIED:
+            setGeoError('Permiso de ubicación denegado. Activá la ubicación en el navegador o marcá en el mapa.')
+            break
+          case err.POSITION_UNAVAILABLE:
+            setGeoError('No se pudo obtener la ubicación. Probá marcando en el mapa.')
+            break
+          case err.TIMEOUT:
+            setGeoError('La solicitud de ubicación tardó mucho. Probá de nuevo.')
+            break
+          default:
+            setGeoError('Error al obtener la ubicación.')
+        }
+      },
+      { enableHighAccuracy: true, timeout: 10000 },
+    )
+  }, [onLocationChange])
+
   const hasCoords = latitud != null && longitud != null
   const [markerPlaced, setMarkerPlaced] = useState(hasCoords)
 
@@ -201,9 +238,23 @@ export default function MapaUbicacionInner({
             )}
           </div>
 
-          {!markerPlaced && !geocoding && (
+          <button
+            type="button"
+            onClick={handleGeoLocate}
+            disabled={geolocating}
+            className="w-full flex items-center justify-center gap-2 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-700 transition disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            {geolocating ? (
+              <Loader2 size={16} className="animate-spin" />
+            ) : (
+              <MapPin size={16} />
+            )}
+            {geolocating ? 'Obteniendo ubicación...' : 'Usar mi ubicación actual'}
+          </button>
+
+          {!markerPlaced && !geocoding && !geolocating && (
             <p className="text-xs text-blue-600 flex items-center gap-1">
-              <span>💡</span> Hacé clic en el mapa para marcar la ubicación o escribí una dirección arriba
+              <span>💡</span> Hacé clic en el mapa, escribí una dirección, o usá el botón de arriba
             </p>
           )}
         </>
@@ -211,6 +262,10 @@ export default function MapaUbicacionInner({
 
       {geocodeError && (
         <p className="text-xs text-red-600">No se encontró esa dirección. Probá haciendo clic en el mapa.</p>
+      )}
+
+      {geoError && (
+        <p className="text-xs text-red-600">{geoError}</p>
       )}
 
       <div className="h-48 sm:h-72 rounded-lg overflow-hidden border border-gray-200" data-testid="map-wrapper">

@@ -15,7 +15,6 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { nombre, telefono, email, notas, direccion, latitud, longitud } = body
     if (!nombre) return NextResponse.json({ error: 'nombre is required' }, { status: 400 })
-    if (!direccion) return NextResponse.json({ error: 'direccion is required' }, { status: 422 })
     const cliente = await prisma.cliente.create({
       data: { nombre, telefono, email, notas, direccion, latitud, longitud },
     })
